@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>International Pro Checkers - Classic Theme</title>
+    <style>
+        /* CSS ӨНГӨНИЙ ТОХИРГОО - ШАТАРТАЙ АДИЛХАН */
+        :root {
+            --bg-color: #0f172a; /* Арын гүн цэнхэр фон */
+            --text-main: #f8fafc;
+            --accent: #38bdf8; /* Цэнхэр тодруулга */
+            --danger: #ef4444;
+
+            /* Шатрын хөлгийн бор өнгөнүүд */
+            --board-light: #f0d9b5; /* Цөцгийн өнгө (Cream) */
+            --board-dark: #b58863;  /* Бор өнгө (Brown) */
+            --board-border: #475569;
+
+            /* Дүрсний өнгө */
+            --white-piece-bg: #ffffff; /* Тод цагаан */
+            --white-piece-shadow: #b1b5b9;
+            --black-piece-bg: #1a1a1a; /* Гүн хар */
+            --black-piece-shadow: #000000;
+        }
+
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin: 0;
+            padding: 20px 10px;
+            touch-action: none;
+            user-select: none; /* Текст сонгохыг идэвхгүй болгох */
+        }
+
+        .header h1 { margin: 10px 0; font-size: 22px; color: var(--accent); text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+
+        .game-info {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+        }
+
+        .turn-indicator { font-weight: bold; font-size: 18px; color: var(--text-main); }
+        .must-jump { color: var(--danger); font-size: 12px; display: none; font-weight: bold; animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* ХӨЛГИЙН ДИЗАЙН */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 95vw;
+            max-width: 400px;
+            height: 95vw;
+            max-height: 400px;
+            border: 8px solid var(--board-border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            touch-action: none;
+        }
+
+        .square {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Хөлгийн нүдний өнгийг бор болгох */
+        .dark-square { background-color: var(--board-dark); }
+        .light-square { background-color: var(--board-light); }
+
+        /* ДҮРСНИЙ ДИЗАЙН */
+        .piece {
+            width: 82%;
+            height: 82%;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            z-index: 2;
+            position: absolute; /* Чирэхэд хэрэгтэй */
+        }
+
+        /* Цагаан дүрс */
+        .white-piece { 
+            background: radial-gradient(circle at 30% 30%, #ffffff 0%, #eaeaea 100%);
+            border: 2px solid #d1d5db;
+            box-shadow: 0 4px 0 var(--white-piece-shadow);
+        }
+
+        /* Хар дүрс */
+        .black-piece { 
+            background: radial-gradient(circle at 30% 30%, #555555 0%, #000000 100%);
+            border: 2px solid #333333;
+            box-shadow: 0 4px 0 var(--black-piece-shadow);
+        }
+
+        /* Даам (Хаан) - Титэм */
+        .king::after { content: "👑"; font-size: 22px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6)); }
+        .white-piece.king::after { color: #555; }
+        .black-piece.king::after { color: #fff; }
+
+        /* Сонгосон болон нүүж болох нүдийг тодруулах */
+        .selected { transform: scale(1.1); outline: 4px solid var(--accent); z-index: 3; box-shadow: 0 0 15px var(--accent); }
+
+        .possible-move::before {
+            content: "";
+            width: 35%;
+            height: 35%;
+            background: rgba(56, 189, 248, 0.5); /* Цэнхэр туяа */
+            border-radius: 50%;
+            z-index: 1;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+        }
+
+        /* Удирдах товчлуурууд */
+        .controls { margin-top: 25px; display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
+        button {
+            background: var(--accent);
+            color: #0f172a;
+            border: none;
+            padding: 12px 25px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+            font-size: 15px;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        button:active { transform: translateY(2px); box-shadow: 0 2px 5px rgba(56, 189, 248, 0.3); }
+        .btn-flip { background: #475569; color: white; box-shadow: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header"><h1>Classic Checkers</h1></div>
+
+    <div class="game-info">
+        <div class="turn-indicator" id="status">White's Turn</div>
+        <div class="must-jump" id="jump-alert">⚠️ MUST JUMP!</div>
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <div class="controls">
+        <button class="btn-flip" onclick="flipBoard()">Flip Board</button>
+        <button onclick="confirmReset()">New Game</button>
+    </div>
+
+    <script>
+        // --- JAVASCRIPT ЛОГИК (ӨӨРЧЛӨГДӨӨГҮЙ, ЗӨВХӨН ДИЗАЙН СЭРГЭЭСЭН) ---
+        let boardState = [];
+        let selectedSquare = null;
+        let turn = 'W'; 
+        let possibleMoves = [];
+        let isFlipped = false;
+
+        const boardElement = document.getElementById('board');
+        const statusElement = document.getElementById('status');
+        const jumpAlert = document.getElementById('jump-alert');
+
+        function initGame() {
+            boardState = Array(8).fill(null).map(() => Array(8).fill(null));
+            turn = 'W';
+            selectedSquare = null;
+            possibleMoves = [];
+            
+            // Анхны байрлал (Олон улсын стандарт)
+            for (let r = 0; r < 3; r++) {
+                for (let c = (r % 2 === 1 ? 0 : 1); c < 8; c += 2) boardState[r][c] = { color: 'B', king: false };
+            }
+            for (let r = 5; r < 8; r++) {
+                for (let c = (r % 2 === 1 ? 0 : 1); c < 8; c += 2) boardState[r][c] = { color: 'W', king: false };
+            }
+            renderBoard();
+        }
+
+        function renderBoard() {
+            boardElement.innerHTML = '';
+            const displayRows = isFlipped ? [...Array(8).keys()].reverse() : [...Array(8).keys()];
+            const displayCols = isFlipped ? [...Array(8).keys()].reverse() : [...Array(8).keys()];
+            
+            displayRows.forEach(r => {
+                displayCols.forEach(c => {
+                    const square = document.createElement('div');
+                    square.className = `square ${(r + c) % 2 === 0 ? 'light-square' : 'dark-square'}`;
+                    
+                    if (boardState[r][c]) {
+                        const piece = document.createElement('div');
+                        piece.className = `piece ${boardState[r][c].color === 'W' ? 'white-piece' : 'black-piece'} ${boardState[r][c].king ? 'king' : ''}`;
+                        if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) piece.classList.add('selected');
+                        piece.onclick = (e) => { e.stopPropagation(); handlePieceClick(r, c); };
+                        square.appendChild(piece);
+                    }
+
+                    const move = possibleMoves.find(m => m.toR === r && m.toC === c);
+                    if (move) {
+                        square.classList.add('possible-move');
+                        square.onclick = () => executeMove(move);
+                    } else {
+                        square.onclick = null; // Бусад нүд дээр дарахад юу ч болохгүй
+                    }
+                    boardElement.appendChild(square);
+                });
+            });
+            updateUI();
+        }
+
+        // --- ДҮРМИЙН ЛОГИК (ӨӨРЧЛӨГДӨӨГҮЙ) ---
+        function getAllJumps(color) {
+            let jumps = [];
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (boardState[r][c] && boardState[r][c].color === color) {
+                        jumps = jumps.concat(getPieceMoves(r, c, true));
+                    }
+                }
+            }
+            return jumps;
+        }
+
+        function getPieceMoves(r, c, onlyJumps = false) {
+            const piece = boardState[r][c];
+            const moves = [];
+            const dirs = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+
+            dirs.forEach(d => {
+                let nextR = r + d[0], nextC = c + d[1];
+                
+                if (piece.king) {
+                    while (nextR >= 0 && nextR < 8 && nextC >= 0 && nextC < 8) {
+                        if (!boardState[nextR][nextC]) {
+                            if (!onlyJumps) moves.push({ fromR: r, fromC: c, toR: nextR, toC: nextC });
+                        } else {
+                            if (boardState[nextR][nextC].color !== piece.color) {
+                                let jumpR = nextR + d[0], jumpC = nextC + d[1];
+                                if (jumpR >= 0 && jumpR < 8 && jumpC >= 0 && jumpC < 8 && !boardState[jumpR][jumpC]) {
+                                    moves.push({ fromR: r, fromC: c, toR: jumpR, toC: jumpC, jump: { r: nextR, c: nextC } });
+                                }
+                            }
+                            break; 
+                        }
+                        nextR += d[0]; nextC += d[1];
+                    }
+                } else {
+                    if (nextR >= 0 && nextR < 8 && nextC >= 0 && nextC < 8) {
+                        if (!boardState[nextR][nextC]) {
+                            const isForward = piece.color === 'W' ? d[0] < 0 : d[0] > 0;
+                            if (!onlyJumps && isForward) moves.push({ fromR: r, fromC: c, toR: nextR, toC: nextC });
+                        } else if (boardState[nextR][nextC].color !== piece.color) {
+                            let jumpR = nextR + d[0], jumpC = nextC + d[1];
+                            if (jumpR >= 0 && jumpR < 8 && jumpC >= 0 && jumpC < 8 && !boardState[jumpR][jumpC]) {
+                                moves.push({ fromR: r, fromC: c, toR: jumpR, toC: jumpC, jump: { r: nextR, c: nextC } });
+                            }
+                        }
+                    }
+                }
+            });
+            return moves;
+        }
+
+        function handlePieceClick(r, c) {
+            if (boardState[r][c].color !== turn) return;
+            
+            const jumps = getAllJumps(turn);
+            const pieceMoves = getPieceMoves(r, c, jumps.length > 0);
+            
+            if (jumps.length > 0 && pieceMoves.length === 0) {
+                // Идэх ёстой байтал өөр дүрс дээр дарвал
+                selectedSquare = null;
+                possibleMoves = [];
+            } else {
+                selectedSquare = { r, c };
+                possibleMoves = pieceMoves;
+            }
+            renderBoard();
+        }
+
+        function executeMove(move) {
+            const piece = boardState[move.fromR][move.fromC];
+            boardState[move.toR][move.toC] = piece;
+            boardState[move.fromR][move.fromC] = null;
+
+            if (move.jump) boardState[move.jump.r][move.jump.c] = null;
+
+            if ((move.toR === 0 && piece.color === 'W') || (move.toR === 7 && piece.color === 'B')) {
+                piece.king = true;
+            }
+
+            if (move.jump) {
+                const extraJumps = getPieceMoves(move.toR, move.toC, true);
+                if (extraJumps.length > 0) {
+                    selectedSquare = { r: move.toR, c: move.toC };
+                    possibleMoves = extraJumps;
+                    renderBoard();
+                    return;
+                }
+            }
+
+            turn = turn === 'W' ? 'B' : 'W';
+            selectedSquare = null;
+            possibleMoves = [];
+            renderBoard();
+        }
+
+        function updateUI() {
+            statusElement.innerText = `${turn === 'W' ? "White" : "Black"}'s Turn`;
+            const jumps = getAllJumps(turn);
+            jumpAlert.style.display = jumps.length > 0 ? 'block' : 'none';
+        }
+
+        function flipBoard() { isFlipped = !isFlipped; renderBoard(); }
+        function confirmReset() { if(confirm("New Game?")) initGame(); }
+
+        initGame();
+    </script>
+</body>
+</html>
