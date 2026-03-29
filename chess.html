@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Professional Chess - No Undo</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --board-border: #334155;
+            --text-main: #f8fafc;
+            --accent: #38bdf8;
+            --danger: #ef4444;
+        }
+
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            font-family: 'Segoe UI', sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin: 0;
+            padding: 20px 10px;
+            touch-action: none; 
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+
+        .game-info {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-box { font-size: 16px; font-weight: bold; }
+        .status-check { color: var(--danger); font-weight: bold; animation: pulse 1.5s infinite; display: none; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .board-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 5px;
+            background: var(--board-border);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+        }
+
+        #myBoard { width: 100%; }
+
+        .highlight-square {
+            box-shadow: inset 0 0 0 4px rgba(56, 189, 248, 0.8) !important;
+            background-color: rgba(56, 189, 248, 0.2) !important;
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background: var(--accent);
+            color: #0f172a;
+            border: none;
+            padding: 12px 25px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+        }
+
+        .btn-secondary { background: #475569; color: white; box-shadow: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Standard Match</h1>
+    </div>
+
+    <div class="game-info">
+        <div class="status-box" id="status">White to move</div>
+        <div class="status-check" id="check-alert">⚠️ CHECK!</div>
+    </div>
+
+    <div class="board-container">
+        <div id="myBoard"></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="flipBoard()" class="btn-secondary">Flip Board</button>
+        <button onclick="resetGame()">New Game</button>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+
+    <script>
+        var board = null;
+        var game = new Chess();
+        var $status = $('#status');
+        var $checkAlert = $('#check-alert');
+
+        function removeHighlights () {
+            $('#myBoard .square-55d63').removeClass('highlight-square');
+        }
+
+        function onDragStart (source, piece, position, orientation) {
+            if (game.game_over()) return false;
+            if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+                return false;
+            }
+
+            var moves = game.moves({ square: source, verbose: true });
+            if (moves.length === 0) return;
+
+            for (var i = 0; i < moves.length; i++) {
+                $('#myBoard .square-' + moves[i].to).addClass('highlight-square');
+            }
+        }
+
+        function onDrop (source, target) {
+            removeHighlights();
+            var move = game.move({ from: source, to: target, promotion: 'q' });
+            if (move === null) return 'snapback';
+            updateStatus();
+        }
+
+        function onSnapEnd () {
+            board.position(game.fen());
+        }
+
+        function updateStatus () {
+            var status = '';
+            var moveColor = 'White';
+            if (game.turn() === 'b') moveColor = 'Black';
+
+            if (game.in_checkmate()) {
+                status = 'Game over, ' + moveColor + ' is in checkmate!';
+                $checkAlert.hide();
+            } else if (game.in_draw()) {
+                status = 'Game over, drawn position';
+                $checkAlert.hide();
+            } else {
+                status = moveColor + ' to move';
+                if (game.in_check()) {
+                    $checkAlert.show(); 
+                } else {
+                    $checkAlert.hide();
+                }
+            }
+            $status.html(status);
+        }
+
+        var config = {
+            draggable: true,
+            position: 'start',
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd
+        };
+
+        board = ChessBoard('myBoard', config);
+
+        function resetGame() {
+            if(confirm("Are you sure you want to start a New Game? Current progress will be lost.")) {
+                game.reset();
+                board.start();
+                removeHighlights();
+                updateStatus();
+            }
+        }
+
+        function flipBoard() { board.flip(); }
+
+        updateStatus();
+    </script>
+</body>
+</html>
