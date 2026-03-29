@@ -15,7 +15,10 @@ mongoose.connect(process.env.MONGO_URI)
 // Telegram Бот тохиргоо
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-bot.start((ctx) => ctx.reply('Сайн байна уу! Тоглоомдоо тавтай морил.'));
+bot.start((ctx) => {
+  ctx.reply('Сайн байна уу! Тоглоомдоо тавтай морил.');
+});
+
 bot.launch();
 
 // Үндсэн сервер ажиллуулах
