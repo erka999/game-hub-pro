@@ -1,38 +1,40 @@
 const { Telegraf } = require('telegraf');
 const mongoose = require('mongoose');
 const express = require('express');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
 
-// 1. MongoDB Connection
+// 1. MongoDB холболт
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB Connected...'))
-  .catch(err => console.error('MongoDB Error:', err));
+  .then(() => console.log('MongoDB холбогдлоо...'))
+  .catch(err => console.error('MongoDB алдаа:', err));
 
-// 2. Telegram Bot Configuration
+// 2. Telegram Бот
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-// Welcome message in English
 bot.start((ctx) => {
-  ctx.reply('Welcome to Game Hub Pro! How can I help you today?');
+  ctx.reply('Welcome to Game Hub Pro!', {
+    reply_markup: {
+      inline_keyboard: [[
+        { text: "Open Dashboard", web_app: { url: "https://" + process.env.RENDER_EXTERNAL_HOSTNAME } }
+      ]]
+    }
+  });
 });
 
-bot.help((ctx) => {
-  ctx.reply('If you need help, please contact the admin.');
+bot.launch();
+
+// 3. Static файлуудыг унших (index.html, chess.html г.м)
+app.use(express.static(path.join(__dirname, '/')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// 3. Launch Bot
-bot.launch()
-  .then(() => console.log('Bot is running...'))
-  .catch(err => console.error('Bot launch error:', err));
-
-// 4. Render Web Server (Required for Render Free Tier)
-app.get('/', (req, res) => res.send('Bot is Online!'));
+// 4. Render-д зориулсан сервер
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
