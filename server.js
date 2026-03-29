@@ -1,29 +1,30 @@
-const express = require('express');
-const mongoose = require('mongoose');
 const { Telegraf } = require('telegraf');
-const cors = require('cors');
+const mongoose = require('mongoose');
+require('dotenv').config();
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// MongoDB холболт
+// MongoDB холболт - Энэ хэсгийг заавал бүрэн бичих ёстой
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB холбогдлоо'))
-  .catch(err => console.error('MongoDB алдаа:', err));
+  .then(() => console.log('MongoDB холбогдлоо...'))
+  .catch(err => console.error('MongoDB холболтын алдаа:', err));
 
 // Telegram Бот тохиргоо
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-// Энэ хэсэгт хаалт (});) заавал байх ёстой
 bot.start((ctx) => {
-  ctx.reply('Сайн байна уу! Тоглоомдоо тавтай морил.');
+    ctx.reply('Сайн байна уу! Тоглоомдоо тавтай морил.');
 });
 
+// Алдаа барих хэсэг
+bot.catch((err, ctx) => {
+    console.log(`Бот дээр алдаа гарлаа: ${ctx.update_type}`, err);
+});
+
+// Бот эхлүүлэх
 bot.launch();
+console.log('Бот амжилттай аслаа...');
 
-// Үндсэн сервер ажиллуулах
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Сервер ${PORT} порт дээр ажиллаж байна`);
-});
+// Render-д зориулсан энгийн сервер (Заавал байх ёстой)
+const express = require('express');
+const app = express();
+app.get('/', (req, res) => res.send('Бот ажиллаж байна!'));
+app.listen(process.env.PORT || 3000);
