@@ -1,30 +1,36 @@
 const { Telegraf } = require('telegraf');
 const mongoose = require('mongoose');
+const express = require('express');
 require('dotenv').config();
 
-// MongoDB холболт - Энэ хэсгийг заавал бүрэн бичих ёстой
+const app = express();
+
+// 1. MongoDB холболт
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB холбогдлоо...'))
-  .catch(err => console.error('MongoDB холболтын алдаа:', err));
+  .catch(err => console.error('MongoDB алдаа:', err));
 
-// Telegram Бот тохиргоо
+// 2. Telegram Бот тохиргоо
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 bot.start((ctx) => {
-    ctx.reply('Сайн байна уу! Тоглоомдоо тавтай морил.');
+  ctx.reply('Сайн байна уу! Тоглоомдоо тавтай морил.');
 });
 
-// Алдаа барих хэсэг
-bot.catch((err, ctx) => {
-    console.log(`Бот дээр алдаа гарлаа: ${ctx.update_type}`, err);
+bot.help((ctx) => ctx.reply('Тусламж хэрэгтэй юу?'));
+
+// 3. Бот ажиллуулах
+bot.launch()
+  .then(() => console.log('Бот амжилттай аслаа...'))
+  .catch(err => console.error('Бот эхлүүлэхэд алдаа гарлаа:', err));
+
+// 4. Render-д зориулсан вэб сервер (Заавал байх ёстой)
+app.get('/', (req, res) => res.send('Бот онлайн байна!'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Сервер ${PORT} порт дээр ажиллаж байна`);
 });
 
-// Бот эхлүүлэх
-bot.launch();
-console.log('Бот амжилттай аслаа...');
-
-// Render-д зориулсан энгийн сервер (Заавал байх ёстой)
-const express = require('express');
-const app = express();
-app.get('/', (req, res) => res.send('Бот ажиллаж байна!'));
-app.listen(process.env.PORT || 3000);
+// Процесс зогсоход ботыг аюулгүй унтраах
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
