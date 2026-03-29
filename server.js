@@ -1,38 +1,59 @@
 const { Telegraf } = require('telegraf');
 const mongoose = require('mongoose');
 const express = require('express');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+app.use(express.json());
+app.use(cors());
 
 // 1. MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB Connected...'))
-  .catch(err => console.error('MongoDB Error:', err));
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    console.log('MongoDB Connected Successfully');
+}).catch(err => {
+    console.error('MongoDB Error:', err);
+});
 
-// 2. Telegram Bot Configuration
+// 2. User Schema
+const UserSchema = new mongoose.Schema({
+    telegramId: String,
+    diamonds: { type: Number, default: 0 },
+    lastUpdate: { type: Date, default: Date.now }
+});
+const User = mongoose.model('User', UserSchema);
+
+// 3. Telegram Bot Configuration
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-// Welcome message in English
 bot.start((ctx) => {
-  ctx.reply('Welcome to Game Hub Pro! How can I help you today?');
+    ctx.reply('Welcome to Game Hub Pro! Play and earn diamonds! 💎');
 });
 
-bot.help((ctx) => {
-  ctx.reply('If you need help, please contact the admin.');
+bot.launch();
+
+// 4. API for Mini App (Очир алмааз нэмэх хэсэг)
+app.post('/api/add-diamonds', async (req, res) => {
+    const { telegramId, amount } = req.body;
+    try {
+        let user = await User.findOne({ telegramId });
+        if (!user) {
+            user = new User({ telegramId, diamonds: amount });
+        } else {
+            user.diamonds += amount;
+        }
+        await user.save();
+        res.json({ success: true, balance: user.diamonds });
+    } catch (error) {
+        res.status(500).json({ error: 'Database error' });
+    }
 });
 
-// 3. Launch Bot
-bot.launch()
-  .then(() => console.log('Bot is running...'))
-  .catch(err => console.error('Bot launch error:', err));
-
-// 4. Render Web Server (Required for Render Free Tier)
-app.get('/', (req, res) => res.send('Bot is Online!'));
+// 5. Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
-
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
