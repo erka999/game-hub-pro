@@ -5,32 +5,34 @@ require('dotenv').config();
 
 const app = express();
 
-// 1. MongoDB холболт
+// 1. MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB холбогдлоо...'))
-  .catch(err => console.error('MongoDB алдаа:', err));
+  .then(() => console.log('MongoDB Connected...'))
+  .catch(err => console.error('MongoDB Error:', err));
 
-// 2. Telegram Бот тохиргоо
+// 2. Telegram Bot Configuration
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+// Welcome message in English
 bot.start((ctx) => {
-  ctx.reply('Сайн байна уу! Тоглоомдоо тавтай морил.');
+  ctx.reply('Welcome to Game Hub Pro! How can I help you today?');
 });
 
-bot.help((ctx) => ctx.reply('Тусламж хэрэгтэй юу?'));
+bot.help((ctx) => {
+  ctx.reply('If you need help, please contact the admin.');
+});
 
-// 3. Бот ажиллуулах
+// 3. Launch Bot
 bot.launch()
-  .then(() => console.log('Бот амжилттай аслаа...'))
-  .catch(err => console.error('Бот эхлүүлэхэд алдаа гарлаа:', err));
+  .then(() => console.log('Bot is running...'))
+  .catch(err => console.error('Bot launch error:', err));
 
-// 4. Render-д зориулсан вэб сервер (Заавал байх ёстой)
-app.get('/', (req, res) => res.send('Бот онлайн байна!'));
+// 4. Render Web Server (Required for Render Free Tier)
+app.get('/', (req, res) => res.send('Bot is Online!'));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Сервер ${PORT} порт дээр ажиллаж байна`);
+  console.log(`Server is running on port ${PORT}`);
 });
 
-// Процесс зогсоход ботыг аюулгүй унтраах
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
