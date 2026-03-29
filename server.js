@@ -15,6 +15,7 @@ mongoose.connect(process.env.MONGO_URI)
 // Telegram Бот тохиргоо
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+// Энэ хэсэгт хаалт (});) заавал байх ёстой
 bot.start((ctx) => {
   ctx.reply('Сайн байна уу! Тоглоомдоо тавтай морил.');
 });
